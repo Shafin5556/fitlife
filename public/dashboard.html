@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .form-container {
+      display: none;
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+    }
+    .form-container input,
+    .form-container select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+      <!-- Logout button -->
+      <form onsubmit="confirmLogout(event)">
+        <button type="submit">Logout</button>
+      </form>
+  <h1>Admin Dashboard</h1>
+
+  <button id="addUserBtn">+ Add User</button>
+
+  <!-- Add User Form -->
+  <div class="form-container" id="addUserFormContainer">
+    <h3>Add New User</h3>
+    <form id="addUserForm">
+      <input type="text" id="first_name" name="first_name" placeholder="First Name" required>
+      <input type="text" id="last_name" name="last_name" placeholder="Last Name" required>
+      <input type="email" id="email" name="email" placeholder="Email" required>
+      <input type="text" id="phone" name="phone" placeholder="Phone" required>
+      <input type="password" id="password" name="password" placeholder="Password" required>
+      <select id="gender" name="gender" required>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+      </select>
+      <input type="number" id="age" name="age" placeholder="Age" required>
+      <select id="plan" name="plan" required>
+        <option value="Free">Free</option>
+        <option value="Premium">Premium</option>
+        <option value="Enterprise">Enterprise</option>
+      </select>
+      <button type="submit">Add User</button>
+    </form>
+  </div>
+
+  <!-- Edit User Form -->
+  <div class="form-container" id="editUserFormContainer">
+    <h3>Edit User</h3>
+    <form id="editUserForm">
+      <input type="hidden" id="edit_user_id" name="user_id">
+      <input type="text" id="edit_first_name" name="first_name" placeholder="First Name" required>
+      <input type="text" id="edit_last_name" name="last_name" placeholder="Last Name" required>
+      <input type="email" id="edit_email" name="email" placeholder="Email" required>
+      <input type="text" id="edit_phone" name="phone" placeholder="Phone" required>
+      <select id="edit_gender" name="gender" required>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+      </select>
+      <input type="number" id="edit_age" name="age" placeholder="Age" required>
+      <select id="edit_plan" name="plan" required>
+        <option value="Free">Free</option>
+        <option value="Premium">Premium</option>
+        <option value="Enterprise">Enterprise</option>
+      </select>
+      <button type="submit">Update User</button>
+    </form>
+  </div>
+
+  <h2>Users List</h2>
+  <table id="usersTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Gender</th>
+        <th>Age</th>
+        <th>Plan</th>
+        <th>Created At</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Users will be inserted here -->
+    </tbody>
+  </table>
+
+  <script>
+    // Show the Add User Form when the "Add User" button is clicked
+    document.getElementById('addUserBtn').addEventListener('click', function() {
+      document.getElementById('addUserFormContainer').style.display = 'block';
+      document.getElementById('editUserFormContainer').style.display = 'none';
+    });
+
+    // Fetch users from the server
+    async function fetchUsers() {
+      try {
+        const response = await fetch('/users');
+        const users = await response.json();
+        const tableBody = document.querySelector('#usersTable tbody');
+        tableBody.innerHTML = '';  // Clear the table before adding rows
+
+        users.forEach(user => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${user.id}</td>
+            <td>${user.first_name}</td>
+            <td>${user.last_name}</td>
+            <td>${user.email}</td>
+            <td>${user.phone}</td>
+            <td>${user.gender}</td>
+            <td>${user.age}</td>
+            <td>${user.plan}</td>
+            <td>${user.created_at}</td>
+            <td>
+              <button class="editBtn" data-id="${user.id}">Edit</button>
+              <button class="deleteBtn" data-id="${user.id}">Delete</button>
+            </td>
+          `;
+          tableBody.appendChild(row);
+        });
+
+        // Add event listeners for each edit button
+        document.querySelectorAll('.editBtn').forEach(button => {
+          button.addEventListener('click', async function() {
+            const userId = this.getAttribute('data-id');
+            await loadUserForEdit(userId);  // Load user details into the edit form
+          });
+        });
+
+        // Add event listeners for each delete button
+        document.querySelectorAll('.deleteBtn').forEach(button => {
+          button.addEventListener('click', async function() {
+            const userId = this.getAttribute('data-id');
+            if (confirm('Are you sure you want to delete this user?')) {
+              await deleteUser(userId);
+              fetchUsers();  // Refresh the user list after deletion
+            }
+          });
+        });
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    }
+
+    // Load user data into the Edit Form
+    async function loadUserForEdit(userId) {
+      try {
+        const response = await fetch(`/users/${userId}`);
+        const user = await response.json();
+
+        // Populate the form fields with the user data
+        document.getElementById('edit_user_id').value = user.id;
+        document.getElementById('edit_first_name').value = user.first_name;
+        document.getElementById('edit_last_name').value = user.last_name;
+        document.getElementById('edit_email').value = user.email;
+        document.getElementById('edit_phone').value = user.phone;
+        document.getElementById('edit_gender').value = user.gender;
+        document.getElementById('edit_age').value = user.age;
+        document.getElementById('edit_plan').value = user.plan;
+
+        // Show the Edit User Form and hide the Add User Form
+        document.getElementById('editUserFormContainer').style.display = 'block';
+        document.getElementById('addUserFormContainer').style.display = 'none';
+      } catch (error) {
+        console.error('Error loading user for editing:', error);
+      }
+    }
+
+    // Add a new user when the Add User form is submitted
+    document.getElementById('addUserForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+      const userData = {};
+
+      formData.forEach((value, key) => {
+        userData[key] = value;
+      });
+
+      try {
+        const response = await fetch('/users/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData)
+        });
+
+        const result = await response.json();
+        if (response.status === 201) {
+          alert(result.message);  // Show success message
+          fetchUsers();  // Refresh the user list
+          event.target.reset();  // Clear the form
+          document.getElementById('addUserFormContainer').style.display = 'none';  // Hide the form
+        } else {
+          alert(result.error);  // Show error message
+        }
+      } catch (error) {
+        console.error('Error adding user:', error);
+      }
+    });
+
+    // Update an existing user when the Edit User form is submitted
+    document.getElementById('editUserForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+      const userData = {};
+
+      formData.forEach((value, key) => {
+        userData[key] = value;
+      });
+
+      try {
+        const response = await fetch(`/users/update/${userData.user_id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData)
+        });
+
+        const result = await response.json();
+        if (response.status === 200) {
+          alert(result.message);  // Show success message
+          fetchUsers();  // Refresh the user list
+          event.target.reset();  // Clear the form
+          document.getElementById('editUserFormContainer').style.display = 'none';  // Hide the form
+        } else {
+          alert(result.error);  // Show error message
+        }
+      } catch (error) {
+        console.error('Error updating user:', error);
+      }
+    });
+
+    // Delete a user by ID
+    async function deleteUser(userId) {
+      try {
+        const response = await fetch(`/users/delete/${userId}`, { method: 'DELETE' });
+        const result = await response.json();
+        alert(result.message);
+      } catch (error) {
+        console.error('Error deleting user:', error);
+      }
+    }
+
+    // Fetch users when the page loads
+    fetchUsers();
+    function confirmLogout(event) {
+      event.preventDefault(); // Prevent the form from submitting immediately
+      if (confirm("Are you sure you want to log out?")) {
+        window.location.href = '/admins/logout'; // Redirect to logout route
+      }
+    }
+  </script>
+  
+</body>
+</html>

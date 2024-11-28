@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            margin-right: 10px;
+        }
+
+        input {
+            margin-bottom: 10px;
+            padding: 8px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .create-admin-btn {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            display: inline-block;
+        }
+
+        .create-admin-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Login</h1>
+
+    <form id="loginForm">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required /><br>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required /><br>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <!-- Create Admin Button -->
+    <a href="/admins/create">
+        <button class="create-admin-btn">Create Admin</button>
+    </a>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            const data = {};
+
+            // Convert formData to a plain object
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+
+            try {
+                // Sending data to the backend
+                const response = await fetch('/admins/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data), // Send the data as JSON
+                });
+
+                const result = await response.json();
+
+                if (response.status === 200) {
+                    alert(result.message); // Show success message
+                    window.location.href = '/dashboard'; // Redirect to the admin dashboard (you can change this URL)
+                } else {
+                    alert(result.error); // Show error message if login failed
+                }
+            } catch (err) {
+                alert('An error occurred. Please try again.');
+                console.error(err); // Log the error for debugging
+            }
+        });
+    </script>
+</body>
+</html>
